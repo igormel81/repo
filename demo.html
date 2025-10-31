@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Smart Form - Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .container { max-width: 1024px; margin: 0 auto; }
+        .card { 
+            background: white; 
+            border-radius: 1rem; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            padding: 2rem; 
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+        .header { text-align: center; margin-bottom: 3rem; }
+        .header h1 { font-size: 3rem; font-weight: bold; color: #1f2937; margin-bottom: 0.5rem; }
+        .header p { font-size: 1.25rem; color: #6b7280; }
+        .step-header { display: flex; align-items: center; margin-bottom: 1rem; }
+        .step-number { 
+            width: 2.5rem; height: 2.5rem; 
+            background: #3b82f6; color: white; 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; margin-right: 0.75rem;
+        }
+        .step-number.green { background: #10b981; }
+        .step-number.purple { background: #8b5cf6; }
+        .step-title { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
+        .step-desc { color: #6b7280; margin-bottom: 1.5rem; }
+        .btn { 
+            width: 100%; 
+            padding: 1rem 1.5rem; 
+            font-weight: bold; 
+            border-radius: 1rem; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .btn-primary { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-top: 1.5rem; }
+        .btn-download { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; }
+        .btn-demo { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; margin-bottom: 1rem; }
+        .sheet-item { 
+            background: #f9fafb; 
+            border: 2px solid #e5e7eb; 
+            border-radius: 0.75rem; 
+            padding: 1rem; 
+            margin-bottom: 1rem;
+        }
+        .sheet-item.active { background: #eff6ff; border-color: #3b82f6; }
+        .sheet-item h3 { font-weight: bold; font-size: 1.125rem; color: #1f2937; margin-bottom: 0.25rem; }
+        .sheet-item p { font-size: 0.875rem; color: #6b7280; }
+        .form-row { 
+            background: #f9fafb; 
+            border: 2px solid #e5e7eb; 
+            border-radius: 1rem; 
+            padding: 1.5rem; 
+            margin-bottom: 1rem;
+        }
+        .form-row h3 { font-weight: bold; font-size: 1.125rem; color: #1f2937; margin-bottom: 1rem; }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 768px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+        .form-field label { 
+            display: block; 
+            font-size: 0.875rem; 
+            font-weight: 600; 
+            color: #374151; 
+            margin-bottom: 0.5rem;
+        }
+        .form-field input { 
+            width: 100%; 
+            padding: 0.75rem 1rem; 
+            border: 2px solid #d1d5db; 
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+        .hidden { display: none !important; }
+        .console { 
+            background: #1f2937; 
+            border-radius: 1rem; 
+            padding: 1.5rem; 
+            margin-top: 2rem;
+        }
+        .console-header { display: flex; align-items: center; margin-bottom: 0.75rem; }
+        .console-dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; margin-right: 0.5rem; }
+        .console-dot.red { background: #ef4444; }
+        .console-dot.yellow { background: #eab308; }
+        .console-dot.green { background: #10b981; }
+        .console-title { color: #9ca3af; font-size: 0.875rem; margin-left: 0.5rem; }
+        .console-log { 
+            background: #000; 
+            border-radius: 0.5rem; 
+            padding: 1rem; 
+            height: 12rem; 
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .console-log div { color: #10b981; margin-bottom: 0.25rem; }
+        .success { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📊 Excel Smart Form - Demo</h1>
+            <p>Демонстрация всех возможностей приложения</p>
+        </header>
+
+        <div class="card">
+            <button onclick="loadDemo()" class="btn btn-demo">▶️ Запустить демо (симуляция загрузки Excel)</button>
+        </div>
+
+        <!-- Step 1 -->
+        <div id="step1" class="card">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h2 class="step-title">Загрузите Excel файл</h2>
+            </div>
+            <p class="step-desc">Нажмите кнопку выше для демонстрации</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div id="step2" class="card hidden">
+            <div class="step-header">
+                <div class="step-number green">2</div>
+                <h2 class="step-title">Структура данных</h2>
+            </div>
+            <p class="step-desc">Обнаружены следующие листы и столбцы</p>
+            <div id="sheetsContainer"></div>
+            <button onclick="createForm()" class="btn btn-primary">Создать форму</button>
+        </div>
+
+        <!-- Step 3 -->
+        <div id="step3" class="card hidden">
+            <div class="step-header">
+                <div class="step-number purple">3</div>
+                <h2 class="step-title">Заполните данные</h2>
+            </div>
+            <p class="step-desc">Введите или отредактируйте значения в форме</p>
+            <div id="formContainer"></div>
+            <button onclick="downloadDemo()" class="btn btn-download">Скачать Excel</button>
+        </div>
+
+        <!-- Console -->
+        <div class="console">
+            <div class="console-header">
+                <div class="console-dot red"></div>
+                <div class="console-dot yellow"></div>
+                <div class="console-dot green"></div>
+                <span class="console-title">Console Log</span>
+            </div>
+            <div id="log" class="console-log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(msg, cls = '') {
+            const time = new Date().toLocaleTimeString();
+            document.getElementById('log').innerHTML += `<div class="${cls}">[${time}] ${msg}</div>`;
+        }
+
+        log('✨ Демо версия Excel Smart Form');
+        log('Нажмите кнопку "Запустить демо" для симуляции');
+
+        function loadDemo() {
+            log('📄 Загружен файл: contacts.xlsx', 'success');
+            log('Анализ структуры данных...', 'success');
+            
+            setTimeout(() => {
+                const container = document.getElementById('sheetsContainer');
+                container.innerHTML = `
+                    <div class="sheet-item active">
+                        <h3>📋 Контакты</h3>
+                        <p>5 строк × 4 столбцов</p>
+                    </div>
+                `;
+                
+                document.getElementById('step2').classList.remove('hidden');
+                document.getElementById('step2').scrollIntoView({ behavior: 'smooth' });
+                log('✅ Найден 1 лист: Контакты');
+                log('Столбцы: Имя (text), Email (email), Телефон (text), Активен (checkbox)');
+            }, 500);
+        }
+
+        function createForm() {
+            log('Создание формы...', 'success');
+            
+            const demoData = [
+                { name: 'Иван Иванов', email: 'ivan@example.com', phone: '+7 999 123-45-67', active: true },
+                { name: 'Мария Петрова', email: 'maria@example.com', phone: '+7 999 234-56-78', active: true },
+                { name: 'Алексей Сидоров', email: 'alex@example.com', phone: '+7 999 345-67-89', active: false }
+            ];
+
+            const container = document.getElementById('formContainer');
+            container.innerHTML = '';
+
+            demoData.forEach((row, idx) => {
+                const html = `
+                    <div class="form-row">
+                        <h3>Запись ${idx + 1}</h3>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label>Имя (text)</label>
+                                <input type="text" value="${row.name}">
+                            </div>
+                            <div class="form-field">
+                                <label>Email (email)</label>
+                                <input type="email" value="${row.email}">
+                            </div>
+                            <div class="form-field">
+                                <label>Телефон (text)</label>
+                                <input type="text" value="${row.phone}">
+                            </div>
+                            <div class="form-field">
+                                <label>Активен (checkbox)</label>
+                                <input type="checkbox" ${row.active ? 'checked' : ''}>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+
+            document.getElementById('step3').classList.remove('hidden');
+            document.getElementById('step3').scrollIntoView({ behavior: 'smooth' });
+            log('✅ Форма создана с 3 записями');
+        }
+
+        function downloadDemo() {
+            log('💾 Подготовка файла для скачивания...', 'success');
+            setTimeout(() => {
+                log('✅ Файл contacts_updated.xlsx готов к скачиванию!', 'success');
+                alert('✅ Демо: В реальном приложении файл будет скачан автоматически!');
+            }, 500);
+        }
+    </script>
+</body>
+</html>

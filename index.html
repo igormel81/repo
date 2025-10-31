@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Smart Form - 1-Click Excel Processing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse-animate {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        .drop-zone.drag-over {
+            background-color: #e0f2fe;
+            border-color: #0284c7;
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-12 fade-in">
+            <h1 class="text-5xl font-bold text-gray-800 mb-3">📊 Excel Smart Form</h1>
+            <p class="text-xl text-gray-600">Загрузите Excel, заполните форму, скачайте результат — всё в браузере!</p>
+        </header>
+
+        <!-- Step 1: File Upload -->
+        <div id="step1" class="bg-white rounded-2xl shadow-xl p-8 mb-6 fade-in">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3">1</div>
+                <h2 class="text-2xl font-bold text-gray-800">Загрузите Excel файл</h2>
+            </div>
+            <p class="text-gray-600 mb-6">Выберите файл или перетащите его в область ниже</p>
+            
+            <div id="dropZone" class="drop-zone border-4 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:bg-gray-50">
+                <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p class="text-lg font-semibold text-gray-700 mb-2">Нажмите для выбора файла или перетащите сюда</p>
+                <p class="text-sm text-gray-500">Поддерживаются форматы: .xlsx, .xls</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+            </div>
+            
+            <div id="fileInfo" class="mt-4 hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm font-semibold text-blue-800">Загружен файл:</p>
+                    <p id="fileName" class="text-lg text-blue-900"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Data Structure Analysis -->
+        <div id="step2" class="bg-white rounded-2xl shadow-xl p-8 mb-6 hidden">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold mr-3">2</div>
+                <h2 class="text-2xl font-bold text-gray-800">Структура данных</h2>
+            </div>
+            <p class="text-gray-600 mb-6">Обнаружены следующие листы и столбцы</p>
+            
+            <div id="sheetsContainer" class="space-y-4"></div>
+            
+            <button id="analyzeBtn" class="mt-6 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                <span class="flex items-center justify-center">
+                    <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Создать форму
+                </span>
+            </button>
+        </div>
+
+        <!-- Step 3: Dynamic Form -->
+        <div id="step3" class="bg-white rounded-2xl shadow-xl p-8 mb-6 hidden">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold mr-3">3</div>
+                <h2 class="text-2xl font-bold text-gray-800">Заполните данные</h2>
+            </div>
+            <p class="text-gray-600 mb-6">Введите или отредактируйте значения в форме</p>
+            
+            <div id="formContainer" class="space-y-4 mb-6"></div>
+            
+            <div class="flex gap-4">
+                <button id="downloadBtn" class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Скачать Excel
+                    </span>
+                </button>
+                <button id="resetBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Начать заново
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Console Log -->
+        <div class="bg-gray-900 rounded-2xl shadow-xl p-6 mt-8">
+            <div class="flex items-center mb-3">
+                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                <span class="text-gray-400 text-sm ml-2">Console Log</span>
+            </div>
+            <div id="log" class="bg-black rounded-lg p-4 h-48 overflow-y-auto font-mono text-sm text-green-400"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let workbook = null;
+        let currentSheetName = null;
+        let dataStructure = null;
+        let formData = [];
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                'info': 'text-green-400',
+                'warn': 'text-yellow-400',
+                'error': 'text-red-400',
+                'success': 'text-blue-400'
+            };
+            const color = colors[type] || colors['info'];
+            logDiv.innerHTML += `<div class="${color}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Detect data type from value
+        function detectType(value) {
+            if (value === null || value === undefined || value === '') return 'text';
+            
+            // Check if it's a number
+            if (typeof value === 'number' || !isNaN(parseFloat(value))) {
+                return 'number';
+            }
+            
+            // Check if it's a date
+            const dateValue = new Date(value);
+            if (dateValue instanceof Date && !isNaN(dateValue) && typeof value === 'string' && value.match(/\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}/)) {
+                return 'date';
+            }
+            
+            // Check if it's a boolean
+            if (typeof value === 'boolean' || value === 'true' || value === 'false' || value === 'да' || value === 'нет') {
+                return 'checkbox';
+            }
+            
+            // Check if it's an email
+            if (typeof value === 'string' && value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                return 'email';
+            }
+            
+            return 'text';
+        }
+
+        // Analyze data structure
+        function analyzeStructure(sheet) {
+            log('Анализ структуры данных...', 'info');
+            
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+            const columns = [];
+            
+            // Get first row (headers)
+            for (let col = range.s.c; col <= range.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: col });
+                const cell = sheet[cellAddress];
+                const headerName = cell ? cell.v : `Column ${col + 1}`;
+                
+                // Sample data from next rows to detect type
+                let detectedType = 'text';
+                const samples = [];
+                
+                for (let row = range.s.r + 1; row <= Math.min(range.s.r + 10, range.e.r); row++) {
+                    const dataCellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                    const dataCell = sheet[dataCellAddress];
+                    if (dataCell && dataCell.v !== null && dataCell.v !== undefined && dataCell.v !== '') {
+                        samples.push(dataCell.v);
+                    }
+                }
+                
+                // Detect type from samples
+                if (samples.length > 0) {
+                    const types = samples.map(detectType);
+                    // Most common type
+                    const typeCounts = {};
+                    types.forEach(t => typeCounts[t] = (typeCounts[t] || 0) + 1);
+                    detectedType = Object.keys(typeCounts).reduce((a, b) => typeCounts[a] > typeCounts[b] ? a : b);
+                }
+                
+                columns.push({
+                    name: headerName,
+                    type: detectedType,
+                    col: col
+                });
+            }
+            
+            log(`Обнаружено ${columns.length} столбцов`, 'success');
+            return { columns };
+        }
+
+        // Parse Excel file
+        function parseExcel(file) {
+            log(`Начинаем парсинг файла: ${file.name}`, 'info');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    workbook = XLSX.read(data, { type: 'array' });
+                    
+                    log(`Файл успешно загружен. Найдено листов: ${workbook.SheetNames.length}`, 'success');
+                    
+                    // Show file info
+                    document.getElementById('fileInfo').classList.remove('hidden');
+                    document.getElementById('fileName').textContent = file.name;
+                    
+                    // Show step 2
+                    setTimeout(() => {
+                        document.getElementById('step2').classList.remove('hidden');
+                        document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        displaySheets();
+                    }, 300);
+                    
+                } catch (error) {
+                    log(`Ошибка при чтении файла: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Display sheets
+        function displaySheets() {
+            const container = document.getElementById('sheetsContainer');
+            container.innerHTML = '';
+            
+            workbook.SheetNames.forEach((sheetName, index) => {
+                const sheet = workbook.Sheets[sheetName];
+                const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null;
+                const rowCount = range ? range.e.r - range.s.r + 1 : 0;
+                const colCount = range ? range.e.c - range.s.c + 1 : 0;
+                
+                const sheetDiv = document.createElement('div');
+                sheetDiv.className = 'bg-gray-50 border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all';
+                if (index === 0) {
+                    sheetDiv.className += ' border-blue-500 bg-blue-50';
+                    currentSheetName = sheetName;
+                }
+                
+                sheetDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">${sheetName}</h3>
+                            <p class="text-sm text-gray-600">${rowCount} строк × ${colCount} столбцов</p>
+                        </div>
+                        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
+                            ${index === 0 ? '✓' : (index + 1)}
+                        </div>
+                    </div>
+                `;
+                
+                sheetDiv.addEventListener('click', () => {
+                    document.querySelectorAll('#sheetsContainer > div').forEach(el => {
+                        el.className = 'bg-gray-50 border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all';
+                    });
+                    sheetDiv.className = 'bg-blue-50 border-2 border-blue-500 rounded-lg p-4 cursor-pointer transition-all';
+                    currentSheetName = sheetName;
+                    log(`Выбран лист: ${sheetName}`, 'info');
+                });
+                
+                container.appendChild(sheetDiv);
+            });
+        }
+
+        // Create dynamic form
+        function createForm() {
+            if (!currentSheetName) {
+                log('Лист не выбран', 'error');
+                return;
+            }
+            
+            log(`Создание формы для листа: ${currentSheetName}`, 'info');
+            
+            const sheet = workbook.Sheets[currentSheetName];
+            dataStructure = analyzeStructure(sheet);
+            
+            // Extract data
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+            formData = [];
+            
+            // Get data rows (skip header)
+            for (let row = range.s.r + 1; row <= range.e.r; row++) {
+                const rowData = {};
+                dataStructure.columns.forEach(col => {
+                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col.col });
+                    const cell = sheet[cellAddress];
+                    rowData[col.name] = cell ? cell.v : '';
+                });
+                formData.push(rowData);
+            }
+            
+            log(`Загружено ${formData.length} строк данных`, 'success');
+            
+            // Show step 3
+            document.getElementById('step3').classList.remove('hidden');
+            document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            renderForm();
+        }
+
+        // Render form
+        function renderForm() {
+            const container = document.getElementById('formContainer');
+            container.innerHTML = '';
+            
+            if (formData.length === 0) {
+                formData.push({});
+                dataStructure.columns.forEach(col => {
+                    formData[0][col.name] = '';
+                });
+            }
+            
+            formData.forEach((rowData, rowIndex) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'bg-gray-50 rounded-xl p-6 border-2 border-gray-200';
+                
+                let rowHTML = `<h3 class="font-bold text-lg mb-4 text-gray-800">Запись ${rowIndex + 1}</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+                
+                dataStructure.columns.forEach(col => {
+                    const value = rowData[col.name] || '';
+                    const inputId = `input_${rowIndex}_${col.name.replace(/\s/g, '_')}`;
+                    
+                    let inputHTML = '';
+                    switch (col.type) {
+                        case 'number':
+                            inputHTML = `<input type="number" id="${inputId}" value="${value}" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-all" 
+                                data-row="${rowIndex}" data-col="${col.name}">`;
+                            break;
+                        case 'date':
+                            const dateValue = value ? new Date(value).toISOString().split('T')[0] : '';
+                            inputHTML = `<input type="date" id="${inputId}" value="${dateValue}" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-all" 
+                                data-row="${rowIndex}" data-col="${col.name}">`;
+                            break;
+                        case 'checkbox':
+                            const checked = value === true || value === 'true' || value === 'да' ? 'checked' : '';
+                            inputHTML = `<input type="checkbox" id="${inputId}" ${checked} 
+                                class="w-6 h-6 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500" 
+                                data-row="${rowIndex}" data-col="${col.name}">`;
+                            break;
+                        case 'email':
+                            inputHTML = `<input type="email" id="${inputId}" value="${value}" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-all" 
+                                data-row="${rowIndex}" data-col="${col.name}">`;
+                            break;
+                        default:
+                            inputHTML = `<input type="text" id="${inputId}" value="${value}" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-all" 
+                                data-row="${rowIndex}" data-col="${col.name}">`;
+                    }
+                    
+                    rowHTML += `
+                        <div>
+                            <label for="${inputId}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                ${col.name} <span class="text-gray-400 text-xs">(${col.type})</span>
+                            </label>
+                            ${inputHTML}
+                        </div>
+                    `;
+                });
+                
+                rowHTML += '</div>';
+                
+                // Add delete button for multiple rows
+                if (formData.length > 1) {
+                    rowHTML += `
+                        <button class="mt-4 text-red-500 hover:text-red-700 font-semibold" onclick="deleteRow(${rowIndex})">
+                            🗑️ Удалить запись
+                        </button>
+                    `;
+                }
+                
+                rowDiv.innerHTML = rowHTML;
+                container.appendChild(rowDiv);
+            });
+            
+            // Add new row button
+            const addRowBtn = document.createElement('button');
+            addRowBtn.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all';
+            addRowBtn.innerHTML = '➕ Добавить запись';
+            addRowBtn.onclick = addRow;
+            container.appendChild(addRowBtn);
+            
+            // Add event listeners to inputs
+            const inputs = container.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('change', updateFormData);
+            });
+        }
+
+        // Update form data from inputs
+        function updateFormData(event) {
+            const input = event.target;
+            const row = parseInt(input.dataset.row);
+            const col = input.dataset.col;
+            
+            if (input.type === 'checkbox') {
+                formData[row][col] = input.checked;
+            } else {
+                formData[row][col] = input.value;
+            }
+            
+            log(`Обновлено: строка ${row + 1}, ${col} = ${formData[row][col]}`, 'info');
+        }
+
+        // Add new row
+        function addRow() {
+            const newRow = {};
+            dataStructure.columns.forEach(col => {
+                newRow[col.name] = '';
+            });
+            formData.push(newRow);
+            renderForm();
+            log('Добавлена новая запись', 'success');
+        }
+
+        // Delete row
+        function deleteRow(rowIndex) {
+            if (confirm(`Удалить запись ${rowIndex + 1}?`)) {
+                formData.splice(rowIndex, 1);
+                renderForm();
+                log(`Удалена запись ${rowIndex + 1}`, 'warn');
+            }
+        }
+
+        // Download Excel
+        function downloadExcel() {
+            log('Подготовка файла для скачивания...', 'info');
+            
+            try {
+                // Create new workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Prepare data with headers
+                const wsData = [];
+                wsData.push(dataStructure.columns.map(col => col.name));
+                
+                formData.forEach(row => {
+                    const rowArray = dataStructure.columns.map(col => row[col.name] || '');
+                    wsData.push(rowArray);
+                });
+                
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, currentSheetName || 'Sheet1');
+                
+                // Generate filename
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+                const filename = `excel_smart_form_${timestamp}.xlsx`;
+                
+                // Download
+                XLSX.writeFile(wb, filename);
+                
+                log(`✅ Файл ${filename} успешно скачан!`, 'success');
+            } catch (error) {
+                log(`❌ Ошибка при создании файла: ${error.message}`, 'error');
+            }
+        }
+
+        // Reset application
+        function resetApp() {
+            if (confirm('Начать заново? Все несохраненные данные будут потеряны.')) {
+                workbook = null;
+                currentSheetName = null;
+                dataStructure = null;
+                formData = [];
+                
+                document.getElementById('fileInfo').classList.add('hidden');
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.add('hidden');
+                document.getElementById('fileInput').value = '';
+                
+                log('🔄 Приложение сброшено', 'warn');
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // File input handling
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                parseExcel(file);
+            }
+        });
+        
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                parseExcel(file);
+            }
+        });
+        
+        // Button handlers
+        document.getElementById('analyzeBtn').addEventListener('click', createForm);
+        document.getElementById('downloadBtn').addEventListener('click', downloadExcel);
+        document.getElementById('resetBtn').addEventListener('click', resetApp);
+        
+        // Initial log
+        log('✨ Excel Smart Form готов к работе!', 'success');
+        log('Загрузите Excel файл для начала работы', 'info');
+    </script>
+</body>
+</html>
